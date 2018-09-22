@@ -37,7 +37,7 @@ progressfilt () {
 }
 
 function compile_node() {
-  echo -e "Prepare to download $COIN_NAME"
+  echo -e "Prepare to download DividendCash"
   TMP_FOLDER=$(mktemp -d)
   cd $TMP_FOLDER
   wget --progress=bar:force $COIN_REPO 2>&1 | progressfilt
@@ -50,16 +50,16 @@ function compile_node() {
   rm -f $COIN_ZIP >/dev/null 2>&1
   cp dividendcash* /usr/local/bin
   compile_error
-  strip $COIN_DAEMON $COIN_CLI
+  strip /usr/local/bin/dividendcashd /usr/local/bin/dividendcash-cli
   cd -
   rm -rf $TMP_FOLDER >/dev/null 2>&1
   clear
 }
 
 function configure_systemd() {
-  cat << EOF > /etc/systemd/system/$COIN_NAME.service
+  cat << EOF > /etc/systemd/system/DividendCash.service
 [Unit]
-Description=$COIN_NAME service
+Description=DividendCash service
 After=network.target
 
 [Service]
@@ -67,10 +67,10 @@ User=root
 Group=root
 
 Type=forking
-#PIDFile=$CONFIGFOLDER/$COIN_NAME.pid
+#PIDFile=/root/.dividendcash/DividendCash.pid
 
-ExecStart=$COIN_DAEMON -daemon -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER
-ExecStop=-$COIN_CLI -conf=$CONFIGFOLDER/$CONFIG_FILE -datadir=$CONFIGFOLDER stop
+ExecStart=/usr/local/bin/dividendcashd -daemon -conf=/root/.dividendcash/dividendcash.conf -datadir=/root/.dividendcash
+ExecStop=-/usr/local/bin/dividendcash-cli -conf=/root/.dividendcash/dividendcash.conf -datadir=/root/.dividendcash stop
 
 Restart=always
 PrivateTmp=true
@@ -85,112 +85,112 @@ EOF
 
   systemctl daemon-reload
   sleep 3
-  systemctl start $COIN_NAME.service
-  systemctl enable $COIN_NAME.service >/dev/null 2>&1
+  systemctl start DividendCash.service
+  systemctl enable DividendCash.service >/dev/null 2>&1
 
-  if [[ -z "$(ps axo cmd:100 | egrep $COIN_DAEMON)" ]]; then
-    echo -e "${RED}$COIN_NAME is not running${NC}, please investigate. You should start by running the following commands as root:"
-    echo -e "${GREEN}systemctl start $COIN_NAME.service"
-    echo -e "systemctl status $COIN_NAME.service"
-    echo -e "less /var/log/syslog${NC}"
+  if [[ -z "$(ps axo cmd:100 | egrep /usr/local/bin/dividendcashd)" ]]; then
+    echo -e "DividendCash is not running, please investigate. You should start by running the following commands as root:"
+    echo -e "systemctl start DividendCash.service"
+    echo -e "systemctl status DividendCash.service"
+    echo -e "less /var/log/syslog"
     exit 1
   fi
 }
 
 function configure_startup() {
-  cat << EOF > /etc/init.d/$COIN_NAME
+  cat << EOF > /etc/init.d/DividendCash
 #! /bin/bash
 ### BEGIN INIT INFO
-# Provides: $COIN_NAME
+# Provides: DividendCash
 # Required-Start: $remote_fs $syslog
 # Required-Stop: $remote_fs $syslog
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
-# Short-Description: $COIN_NAME
-# Description: This file starts and stops $COIN_NAME MN server
+# Short-Description: DividendCash
+# Description: This file starts and stops DividendCash MN server
 #
 ### END INIT INFO
 
 case "\$1" in
  start)
-   $COIN_DAEMON -daemon
+   /usr/local/bin/dividendcashd -daemon
    sleep 5
    ;;
  stop)
-   $COIN_CLI stop
+   /usr/local/bin/dividendcash-cli stop
    ;;
  restart)
-   $COIN_CLI stop
+   /usr/local/bin/dividendcash-cli stop
    sleep 10
-   $COIN_DAEMON -daemon
+   /usr/local/bin/dividendcashd -daemon
    ;;
  *)
-   echo "Usage: $COIN_NAME {start|stop|restart}" >&2
+   echo "Usage: DividendCash {start|stop|restart}" >&2
    exit 3
    ;;
 esac
 EOF
-chmod +x /etc/init.d/$COIN_NAME >/dev/null 2>&1
-update-rc.d $COIN_NAME defaults >/dev/null 2>&1
-/etc/init.d/$COIN_NAME start >/dev/null 2>&1
+chmod +x /etc/init.d/DividendCash >/dev/null 2>&1
+update-rc.d DividendCash defaults >/dev/null 2>&1
+/etc/init.d/DividendCash start >/dev/null 2>&1
 if [ "$?" -gt "0" ]; then
  sleep 5
- /etc/init.d/$COIN_NAME start >/dev/null 2>&1
+ /etc/init.d/DividendCash start >/dev/null 2>&1
 fi
 }
 
 
 function create_config() {
-  mkdir $CONFIGFOLDER >/dev/null 2>&1
+  mkdir /root/.dividendcash >/dev/null 2>&1
   RPCUSER=$(tr -cd '[:alnum:]' < /dev/urandom | fold -w10 | head -n1)
   RPCPASSWORD=$(tr -cd '[:alnum:]' < /dev/urandom | fold -w22 | head -n1)
-  cat << EOF > $CONFIGFOLDER/$CONFIG_FILE
+  cat << EOF > /root/.dividendcash/dividendcash.conf
 rpcuser=$RPCUSER
 rpcpassword=$RPCPASSWORD
 rpcallowip=127.0.0.1
 listen=1
 server=1
 daemon=1
-port=$COIN_PORT
+port=19997
 EOF
 }
 
 function create_key() {
   #if [[ -z "$COINKEY" ]]; then
-  $COIN_DAEMON -daemon
+  /usr/local/bin/dividendcashd -daemon
   sleep 30
-  if [ -z "$(ps axo cmd:100 | grep $COIN_DAEMON)" ]; then
-   echo -e "${RED}$COIN_NAME server couldn not start. Check /var/log/syslog for errors.{$NC}"
+  if [ -z "$(ps axo cmd:100 | grep /usr/local/bin/dividendcashd)" ]; then
+   echo -e "DividendCash server couldn not start. Check /var/log/syslog for errors.{$NC}"
    exit 1
   fi
-  COINKEY=$($COIN_CLI masternode genkey)
+  COINKEY=$(/usr/local/bin/dividendcash-cli masternode genkey)
   if [ "$?" -gt "0" ];
     then
-    echo -e "${RED}Wallet not fully loaded. Let us wait and try again to generate the Private Key${NC}"
+    echo -e "Wallet not fully loaded. Let us wait and try again to generate the Private Key"
     sleep 30
-    COINKEY=$($COIN_CLI masternode genkey)
+    COINKEY=$(/usr/local/bin/dividendcash-cli masternode genkey)
   fi
-  $COIN_CLI stop
+  /usr/local/bin/dividendcash-cli stop
   #fi
   clear
 }
 
 function update_config() {
-  sed -i 's/daemon=1/daemon=0/' $CONFIGFOLDER/$CONFIG_FILE
-  cat << EOF >> $CONFIGFOLDER/$CONFIG_FILE
+  sed -i 's/daemon=1/daemon=0/' /root/.dividendcash/dividendcash.conf
+  cat << EOF >> /root/.dividendcash/dividendcash.conf
 logintimestamps=1
 maxconnections=64
 #bind=$NODEIP
 masternode=1
-externalip=$NODEIP:$COIN_PORT
+externalip=$NODEIP:19997
 masternodeprivkey=$COINKEY
 EOF
 }
 
 function enable_firewall() {
-  echo -e "Installing and setting up firewall to allow ingress on port ${GREEN}$COIN_PORT${NC}"
+  echo -e "Installing and setting up firewall to allow ingress on port 19997"
   ufw allow ssh >/dev/null 2>&1
-  ufw allow $COIN_PORT >/dev/null 2>&1
+  ufw allow 19997 >/dev/null 2>&1
   ufw default allow outgoing >/dev/null 2>&1
   echo "y" | ufw enable >/dev/null 2>&1
 }
@@ -204,7 +204,7 @@ function get_ip() {
 
   if [ ${#NODE_IPS[@]} -gt 1 ]
     then
-      echo -e "${GREEN}More than one IP. Please type 0 to use the first IP, 1 for the second and so on...${NC}"
+      echo -e "More than one IP. Please type 0 to use the first IP, 1 for the second and so on..."
       INDEX=0
       for ip in "${NODE_IPS[@]}"
       do
@@ -221,7 +221,7 @@ function get_ip() {
 function compile_error() {
 if [ "$?" -gt "0" ];
  then
-  echo -e "${RED}Failed to compile $COIN_NAME. Please investigate.${NC}"
+  echo -e "Failed to compile DividendCash. Please investigate."
   exit 1
 fi
 }
@@ -232,7 +232,7 @@ function detect_ubuntu() {
  elif [[ $(lsb_release -d) == *14.04* ]]; then
    UBUNTU_VERSION=14
 else
-   echo -e "${RED}You are not running Ubuntu 14.04 or 16.04 Installation is cancelled.${NC}"
+   echo -e "You are not running Ubuntu 14.04 or 16.04 Installation is cancelled."
    exit 1
 fi
 }
@@ -240,18 +240,18 @@ fi
 function checks() {
  detect_ubuntu
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}$0 must be run as root.${NC}"
+   echo -e "$0 must be run as root."
    exit 1
 fi
 
-if [ -n "$(pidof $COIN_DAEMON)" ] || [ -e "$COIN_DAEMOM" ] ; then
-  echo -e "${RED}$COIN_NAME is already installed.${NC}"
+if [ -n "$(pidof /usr/local/bin/dividendcashd)" ] || [ -e "$COIN_DAEMOM" ] ; then
+  echo -e "DividendCash is already installed."
   exit 1
 fi
 }
 
 function prepare_system() {
-echo -e "Prepare the system to install ${GREEN}$COIN_NAME${NC} master node."
+echo -e "Prepare the system to install DividendCash master node."
 apt-get update >/dev/null 2>&1
 apt-get install -y wget curl binutils >/dev/null 2>&1
 }
@@ -259,24 +259,24 @@ apt-get install -y wget curl binutils >/dev/null 2>&1
 function important_information() {
  echo
  echo -e "================================================================================"
- echo -e "$COIN_NAME Masternode is up and running listening on port ${RED}$COIN_PORT${NC}."
- echo -e "Configuration file is: ${RED}$CONFIGFOLDER/$CONFIG_FILE${NC}"
+ echo -e "DividendCash Masternode is up and running listening on port 19997."
+ echo -e "Configuration file is: /root/.dividendcash/dividendcash.conf"
  if (( $UBUNTU_VERSION == 16 )); then
-   echo -e "Start: ${RED}systemctl start $COIN_NAME.service${NC}"
-   echo -e "Stop: ${RED}systemctl stop $COIN_NAME.service${NC}"
-   echo -e "Status: ${RED}systemctl status $COIN_NAME.service${NC}"
+   echo -e "Start: systemctl start DividendCash.service"
+   echo -e "Stop: systemctl stop DividendCash.service"
+   echo -e "Status: systemctl status DividendCash.service"
  else
-   echo -e "Start: ${RED}/etc/init.d/$COIN_NAME start${NC}"
-   echo -e "Stop: ${RED}/etc/init.d/$COIN_NAME stop${NC}"
-   echo -e "Status: ${RED}/etc/init.d/$COIN_NAME status${NC}"
+   echo -e "Start: /etc/init.d/DividendCash start"
+   echo -e "Stop: /etc/init.d/DividendCash stop"
+   echo -e "Status: /etc/init.d/DividendCash status"
  fi
- echo -e "VPS_IP:PORT ${RED}$NODEIP:$COIN_PORT${NC}"
- echo -e "MASTERNODE PRIVATEKEY is: ${RED}$COINKEY${NC}"
+ echo -e "VPS_IP:PORT $NODEIP:19997"
+ echo -e "MASTERNODE PRIVATEKEY is: $COINKEY"
  if [[ -n $SENTINEL_REPO  ]]; then
-  echo -e "${RED}Sentinel${NC} is installed in ${RED}$CONFIGFOLDER/sentinel${NC}"
-  echo -e "Sentinel logs is: ${RED}$CONFIGFOLDER/sentinel.log${NC}"
+  echo -e "Sentinel is installed in /root/.dividendcash/sentinel"
+  echo -e "Sentinel logs is: /root/.dividendcash/sentinel.log"
  fi
- echo -e "Check if $COIN_NAME is running by using the following command:\n${RED}ps -ef | grep $COIN_DAEMON | grep -v grep${NC}"
+ echo -e "Check if DividendCash is running by using the following command:\nps -ef | grep /usr/local/bin/dividendcashd | grep -v grep"
  echo -e "================================================================================"
 }
 
