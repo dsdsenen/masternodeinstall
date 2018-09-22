@@ -158,7 +158,7 @@ EOF
 function create_key() {
   #if [[ -z "$COINKEY" ]]; then
   /usr/local/bin/dividendcashd -daemon
-  sleep 30
+  sleep 10
   if [ -z "$(ps axo cmd:100 | grep /usr/local/bin/dividendcashd)" ]; then
    echo -e "DividendCash server couldn not start. Check /var/log/syslog for errors.{$NC}"
    exit 1
@@ -167,7 +167,7 @@ function create_key() {
   if [ "$?" -gt "0" ];
     then
     echo -e "Wallet not fully loaded. Let us wait and try again to generate the Private Key"
-    sleep 30
+    sleep 10
     COINKEY=$(/usr/local/bin/dividendcash-cli masternode genkey)
   fi
   #/usr/local/bin/dividendcash-cli stop
