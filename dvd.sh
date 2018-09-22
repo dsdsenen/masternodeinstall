@@ -4,7 +4,7 @@ CONFIG_FILE='dividendcash.conf'
 CONFIGFOLDER='/root/.dividendcash'
 COIN_DAEMON='/usr/local/bin/dividendcashd'
 COIN_CLI='/usr/local/bin/dividendcash-cli'
-COIN_REPO='https://github.com/dividendcash/dvdwallet/raw/master/dividendcash-1.0.0-x86_64-linux-gnu.tar.gz'
+COIN_REPO='https://github.com/dividendcash/dividendcash/releases/download/v1.0.0/dividendcash-1.0.0-x86_64-linux-gnu.tar.gz'
 COIN_NAME='DividendCash'
 COIN_PORT=19997
 
@@ -156,15 +156,6 @@ EOF
 }
 
 function create_key() {
-  echo -e "Enter your ${RED}$COIN_NAME Masternode Private Key${NC}.\nLeave it blank to generate a new ${RED}$COIN_NAME Masternode Private Key${NC} for you:"
-  read -e COINKEY
-  if [[ -z "$COINKEY" ]]; then
-  $COIN_DAEMON -daemon
-  sleep 30
-  if [ -z "$(ps axo cmd:100 | grep $COIN_DAEMON)" ]; then
-   echo -e "${RED}$COIN_NAME server couldn not start. Check /var/log/syslog for errors.{$NC}"
-   exit 1
-  fi
   COINKEY=$($COIN_CLI masternode genkey)
   if [ "$?" -gt "0" ];
     then
@@ -173,8 +164,7 @@ function create_key() {
     COINKEY=$($COIN_CLI masternode genkey)
   fi
   $COIN_CLI stop
-fi
-clear
+  clear
 }
 
 function update_config() {
