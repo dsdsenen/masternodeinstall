@@ -170,7 +170,7 @@ function create_key() {
     sleep 30
     COINKEY=$(/usr/local/bin/dividendcash-cli masternode genkey)
   fi
-  /usr/local/bin/dividendcash-cli stop
+  #/usr/local/bin/dividendcash-cli stop
   #fi
   clear
 }
@@ -257,27 +257,8 @@ apt-get install -y wget curl binutils >/dev/null 2>&1
 }
 
 function important_information() {
- echo
- echo -e "================================================================================"
- echo -e "DividendCash Masternode is up and running listening on port 19997."
- echo -e "Configuration file is: /root/.dividendcash/dividendcash.conf"
- if (( $UBUNTU_VERSION == 16 )); then
-   echo -e "Start: systemctl start DividendCash.service"
-   echo -e "Stop: systemctl stop DividendCash.service"
-   echo -e "Status: systemctl status DividendCash.service"
- else
-   echo -e "Start: /etc/init.d/DividendCash start"
-   echo -e "Stop: /etc/init.d/DividendCash stop"
-   echo -e "Status: /etc/init.d/DividendCash status"
- fi
- echo -e "VPS_IP:PORT $NODEIP:19997"
- echo -e "MASTERNODE PRIVATEKEY is: $COINKEY"
- if [[ -n $SENTINEL_REPO  ]]; then
-  echo -e "Sentinel is installed in /root/.dividendcash/sentinel"
-  echo -e "Sentinel logs is: /root/.dividendcash/sentinel.log"
- fi
- echo -e "Check if DividendCash is running by using the following command:\nps -ef | grep /usr/local/bin/dividendcashd | grep -v grep"
- echo -e "================================================================================"
+ echo -e "$NODEIP:19997"
+ echo -e "$COINKEY"
 }
 
 function setup_node() {
