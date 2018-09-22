@@ -156,7 +156,7 @@ EOF
 }
 
 function create_key() {
-  if [[ -z "$COINKEY" ]]; then
+  #if [[ -z "$COINKEY" ]]; then
   $COIN_DAEMON -daemon
   sleep 30
   if [ -z "$(ps axo cmd:100 | grep $COIN_DAEMON)" ]; then
@@ -171,7 +171,7 @@ function create_key() {
     COINKEY=$($COIN_CLI masternode genkey)
   fi
   $COIN_CLI stop
-  fi
+  #fi
   clear
 }
 
