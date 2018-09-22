@@ -244,7 +244,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-if [ -n "$(pidof /usr/local/bin/dividendcashd)" ] || [ -e "$COIN_DAEMOM" ] ; then
+if [ -n "$(pidof /usr/local/bin/dividendcashd)" ] || [ -e "/usr/local/bin/dividendcashd" ] ; then
   echo -e "DividendCash is already installed."
   exit 1
 fi
